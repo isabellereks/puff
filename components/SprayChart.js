@@ -34,7 +34,7 @@ export default function SprayChart({ data }) {
 
   const width = layoutWidth || 280;
   const height = 140;
-  const padding = { left: 24, right: 16, top: 20, bottom: 36 };
+  const padding = { left: 32, right: 16, top: 20, bottom: 36 };
   const chartW = width - padding.left - padding.right;
   const chartH = height - padding.top - padding.bottom;
 
@@ -100,7 +100,7 @@ export default function SprayChart({ data }) {
                     strokeWidth={0.7}
                   />
                   <SvgText
-                    x={padding.left - 6}
+                    x={padding.left - 8}
                     y={y + 4}
                     fontSize={9}
                     fill={COLORS.tabInactive}

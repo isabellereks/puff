@@ -23,6 +23,10 @@ function generateReading() {
   };
 }
 
+export function setCurrentScore(score) {
+  currentScore = Math.max(5, Math.min(95, score));
+}
+
 export function simulateSpray(intensity = 65) {
   // Spike the score to simulate a spray event
   currentScore = Math.min(95, intensity + Math.random() * 15);

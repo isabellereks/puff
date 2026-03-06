@@ -155,6 +155,10 @@ export default function LibraryScreen() {
           onClose={() => setSelectedPerfume(null)}
           onAdd={handleAddRemove}
           inLibrary={libraryIds.includes(selectedPerfume.id)}
+          libraryEntry={state.library.find((l) => l.perfumeId === selectedPerfume.id)}
+          onUpdateNotes={(perfumeId, idealSprays, userNotes) =>
+            dispatch({ type: "UPDATE_PERFUME_NOTES", perfumeId, idealSprays, userNotes })
+          }
         />
       )}
     </SafeAreaView>

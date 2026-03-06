@@ -113,6 +113,22 @@ function appReducer(state, action) {
         ),
       };
 
+    case "UPDATE_PERFUME_NOTES":
+      return {
+        ...state,
+        library: state.library.map((l) =>
+          l.perfumeId === action.perfumeId
+            ? { ...l, idealSprays: action.idealSprays, userNotes: action.userNotes }
+            : l
+        ),
+      };
+
+    case "REMOVE_SPRAY":
+      return {
+        ...state,
+        sprayEvents: state.sprayEvents.filter((e) => e.id !== action.sprayId),
+      };
+
     case "LOG_SPRAY": {
       const event = {
         id: `spray_${Date.now()}`,

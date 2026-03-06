@@ -1,8 +1,8 @@
-import React from "react";
-import { View, Text, ScrollView, StyleSheet, Pressable, Modal } from "react-native";
+import React, { useState } from "react";
+import { View, Text, ScrollView, StyleSheet, Pressable, Modal, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, FONTS, SHADOWS } from "./theme";
+import { COLORS, FONTS, SHADOWS, NUMBER_STYLE } from "./theme";
 import { getCleanerAlternatives } from "../services/perfumeService";
 import { getPerfumeFlags, getSustainabilityScore, VOC_INFO } from "../data/ingredientFlags";
 import PerfumeBottle from "./PerfumeBottle";
@@ -13,10 +13,13 @@ const SEVERITY_COLORS = {
   low: { bg: "#E8E6EC", text: "#6B6878" },
 };
 
-export default function PerfumeDetail({ perfume, onClose, onAdd, inLibrary }) {
+export default function PerfumeDetail({ perfume, onClose, onAdd, inLibrary, libraryEntry, onUpdateNotes }) {
   const flags = getPerfumeFlags(perfume);
   const score = getSustainabilityScore(perfume);
   const alternatives = flags.length > 0 ? getCleanerAlternatives(perfume.id) : [];
+
+  const [idealSprays, setIdealSprays] = useState(libraryEntry?.idealSprays ?? 3);
+  const [userNotes, setUserNotes] = useState(libraryEntry?.userNotes ?? "");
 
   return (
     <Modal visible animationType="slide" presentationStyle="pageSheet">
@@ -124,6 +127,52 @@ export default function PerfumeDetail({ perfume, onClose, onAdd, inLibrary }) {
                   </View>
                 </View>
               ))}
+            </View>
+          )}
+
+          {/* Ideal sprays & notes */}
+          {inLibrary && (
+            <View style={styles.userSection}>
+              <Text style={styles.flagsSectionTitle}>Your preferences</Text>
+              <View style={styles.sprayCountRow}>
+                <Text style={styles.sprayCountLabel}>Ideal sprays</Text>
+                <View style={styles.sprayCounter}>
+                  <Pressable
+                    onPress={() => {
+                      const next = Math.max(1, idealSprays - 1);
+                      setIdealSprays(next);
+                      onUpdateNotes?.(perfume.id, next, userNotes);
+                    }}
+                    style={styles.sprayBtn}
+                    hitSlop={8}
+                  >
+                    <Ionicons name="remove" size={18} color={COLORS.text} />
+                  </Pressable>
+                  <Text style={styles.sprayCountValue}>{idealSprays}</Text>
+                  <Pressable
+                    onPress={() => {
+                      const next = Math.min(20, idealSprays + 1);
+                      setIdealSprays(next);
+                      onUpdateNotes?.(perfume.id, next, userNotes);
+                    }}
+                    style={styles.sprayBtn}
+                    hitSlop={8}
+                  >
+                    <Ionicons name="add" size={18} color={COLORS.text} />
+                  </Pressable>
+                </View>
+              </View>
+              <TextInput
+                style={styles.notesInput}
+                placeholder="Add notes about this perfume..."
+                placeholderTextColor={COLORS.tabInactive}
+                value={userNotes}
+                onChangeText={(text) => {
+                  setUserNotes(text);
+                  onUpdateNotes?.(perfume.id, idealSprays, text);
+                }}
+                multiline
+              />
             </View>
           )}
 
@@ -305,6 +354,54 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#5C6B52",
     marginTop: 3,
+  },
+  userSection: {
+    marginBottom: 16,
+  },
+  sprayCountRow: {
+    backgroundColor: COLORS.card,
+    borderRadius: 36,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 10,
+    ...SHADOWS.neumorphicLight,
+  },
+  sprayCountLabel: {
+    fontSize: 14,
+    color: COLORS.text,
+  },
+  sprayCounter: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  sprayBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: COLORS.background,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sprayCountValue: {
+    fontSize: 18,
+    color: COLORS.text,
+    fontWeight: "500",
+    minWidth: 24,
+    textAlign: "center",
+    ...NUMBER_STYLE,
+  },
+  notesInput: {
+    backgroundColor: COLORS.card,
+    borderRadius: 20,
+    padding: 16,
+    fontSize: 14,
+    color: COLORS.text,
+    minHeight: 80,
+    textAlignVertical: "top",
+    ...SHADOWS.neumorphicLight,
   },
   addButton: {
     backgroundColor: COLORS.mutedGreen,

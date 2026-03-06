@@ -14,9 +14,9 @@ function lerpColor(a, b, t) {
   return `rgb(${rr},${rg},${rb})`;
 }
 
-export default function CircularGauge({ value = 45, size = 330, preferredRange = [40, 50] }) {
+export default function CircularGauge({ value = 45, size = 330, preferredRange = [40, 50], sprayEvents = [] }) {
   const strokeWidth = 22;
-  const radius = (size - strokeWidth - 20) / 2;
+  const radius = (size - strokeWidth - 30) / 2;
   const center = size / 2;
 
   const toXY = (angle) => {
@@ -66,25 +66,45 @@ export default function CircularGauge({ value = 45, size = 330, preferredRange =
     );
   }
 
-  // Preferred range markers
-  const rangeStartAngle = (preferredRange[0] / 100) * 360;
-  const rangeEndAngle = (preferredRange[1] / 100) * 360;
-  const markerRadius = radius + strokeWidth / 2 + 6;
+  // Spray event markers on the ring
+  const eventMarkerRadius = radius + strokeWidth / 2 + 6;
+  const eventMarkers = sprayEvents.map((evt) => {
+    const angle = (Math.min(evt.score, 100) / 100) * 360;
+    return toXYCustom(angle, eventMarkerRadius, center);
+  });
 
-  const rangeStart = toXYCustom(rangeStartAngle, markerRadius, center);
-  const rangeEnd = toXYCustom(rangeEndAngle, markerRadius, center);
-
-  // Needle
+  // Needle (wand — pointed tip, rounded base)
   const needleAngle = (value / 100) * 360;
   const nRad = ((needleAngle - 90) * Math.PI) / 180;
-  const nFrom = {
-    x: center + (radius - strokeWidth / 2 + 2) * Math.cos(nRad),
-    y: center + (radius - strokeWidth / 2 + 2) * Math.sin(nRad),
+  const perpRad = nRad + Math.PI / 2;
+  const tipR = radius + strokeWidth / 2 + 14;
+  const baseR = radius - strokeWidth / 2 - 35;
+  const baseWidth = 3;
+
+  const tip = {
+    x: center + tipR * Math.cos(nRad),
+    y: center + tipR * Math.sin(nRad),
   };
-  const nTo = {
-    x: center + (radius + strokeWidth / 2 + 16) * Math.cos(nRad),
-    y: center + (radius + strokeWidth / 2 + 16) * Math.sin(nRad),
+  // Control point very close to tip for almost no taper until the end
+  const cpR = baseR + (tipR - baseR) * 0.15;
+  const cpWidth = baseWidth * 0.98;
+  const cpL = {
+    x: center + cpR * Math.cos(nRad) + cpWidth * Math.cos(perpRad),
+    y: center + cpR * Math.sin(nRad) + cpWidth * Math.sin(perpRad),
   };
+  const cpRt = {
+    x: center + cpR * Math.cos(nRad) - cpWidth * Math.cos(perpRad),
+    y: center + cpR * Math.sin(nRad) - cpWidth * Math.sin(perpRad),
+  };
+  const baseL = {
+    x: center + baseR * Math.cos(nRad) + baseWidth * Math.cos(perpRad),
+    y: center + baseR * Math.sin(nRad) + baseWidth * Math.sin(perpRad),
+  };
+  const baseRt = {
+    x: center + baseR * Math.cos(nRad) - baseWidth * Math.cos(perpRad),
+    y: center + baseR * Math.sin(nRad) - baseWidth * Math.sin(perpRad),
+  };
+  const needlePath = `M ${tip.x} ${tip.y} Q ${cpL.x} ${cpL.y} ${baseL.x} ${baseL.y} A ${baseWidth} ${baseWidth} 0 0 1 ${baseRt.x} ${baseRt.y} Q ${cpRt.x} ${cpRt.y} ${tip.x} ${tip.y} Z`;
 
   const inRange = value >= preferredRange[0] && value <= preferredRange[1];
 
@@ -93,30 +113,17 @@ export default function CircularGauge({ value = 45, size = 330, preferredRange =
       <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         {arcs}
 
-        {/* Preferred range tick marks */}
-        <Circle cx={rangeStart.x} cy={rangeStart.y} r={3} fill="#9AAC86" opacity={0.6} />
-        <Circle cx={rangeEnd.x} cy={rangeEnd.y} r={3} fill="#9AAC86" opacity={0.6} />
+        {/* Spray event markers */}
+        {eventMarkers.map((pos, i) => (
+          <Circle key={i} cx={pos.x} cy={pos.y} r={3} fill="#A08878" opacity={0.5} />
+        ))}
 
-        {/* Needle */}
-        <Line
-          x1={nFrom.x}
-          y1={nFrom.y}
-          x2={nTo.x}
-          y2={nTo.y}
-          stroke="#C0A590"
-          strokeWidth={1.8}
-          strokeLinecap="round"
-        />
-        <Circle cx={nTo.x} cy={nTo.y} r={2.5} fill="#C0A590" />
+        {/* Needle (wand) */}
+        <Path d={needlePath} fill="#A08878" opacity={0.9} />
       </Svg>
 
       <View style={[styles.centerText, { width: size, height: size }]}>
         <Text style={styles.valueText}>{value}</Text>
-        <Text style={styles.rangeText}>
-          {inRange
-            ? "Within your ideal range"
-            : `Your ideal range: ${preferredRange[0]}–${preferredRange[1]}`}
-        </Text>
       </View>
     </View>
   );
