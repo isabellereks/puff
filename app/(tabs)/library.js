@@ -167,6 +167,7 @@ export default function LibraryScreen() {
   const { state, dispatch, getLibraryPerfumes } = useApp();
   const [query, setQuery] = useState("");
   const [selectedPerfume, setSelectedPerfume] = useState(null);
+  const [browseAll, setBrowseAll] = useState(false);
   const libraryPerfumes = getLibraryPerfumes();
   const libraryIds = state.library.map((l) => l.perfumeId);
 
@@ -182,7 +183,7 @@ export default function LibraryScreen() {
     setSelectedPerfume(null);
   };
 
-  const displayList = showSearch ? results : libraryPerfumes;
+  const displayList = showSearch ? results : browseAll ? getAllPerfumes() : libraryPerfumes;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -216,7 +217,19 @@ export default function LibraryScreen() {
         )}
 
         {!showSearch && (
-          <Text style={styles.sectionLabel}>Your collection ({libraryPerfumes.length})</Text>
+          <View style={styles.sectionRow}>
+            <Text style={styles.sectionLabel}>
+              {browseAll ? `All perfumes (${getAllPerfumes().length})` : `Your collection (${libraryPerfumes.length})`}
+            </Text>
+            <Pressable
+              style={styles.browseButton}
+              onPress={() => setBrowseAll(!browseAll)}
+            >
+              <Text style={styles.browseButtonText}>
+                {browseAll ? "My Library" : "Browse All"}
+              </Text>
+            </Pressable>
+          </View>
         )}
 
         {displayList.map((perfume) => {
@@ -329,11 +342,28 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     marginLeft: 10,
   },
+  sectionRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 14,
+  },
   sectionLabel: {
     fontSize: 12,
     color: COLORS.tabInactive,
     textTransform: "uppercase",
-    marginBottom: 14,
+  },
+  browseButton: {
+    backgroundColor: COLORS.card,
+    borderRadius: 36,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    ...SHADOWS.neumorphicLight,
+  },
+  browseButtonText: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    fontWeight: "500",
   },
   resultCount: {
     fontSize: 12,

@@ -62,7 +62,7 @@ function SustainabilityRing({ score, size = 120 }) {
     );
   }
 
-  const label = score >= 80 ? "Excellent" : score >= 60 ? "Mindful" : "Moderate";
+  const label = score >= 80 ? "Excellent" : score >= 60 ? "Mindful" : score >= 40 ? "Moderate" : "Needs attention";
 
   return (
     <View style={styles.ringContainer}>

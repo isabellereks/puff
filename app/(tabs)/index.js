@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { View, Text, ScrollView, StyleSheet, Pressable } from "react-native";
+import { View, Text, ScrollView, StyleSheet, Pressable, Modal } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
 import CircularGauge from "../../components/CircularGauge";
@@ -7,7 +8,8 @@ import SprayChart from "../../components/SprayChart";
 import { COLORS, FONTS, SHADOWS, NUMBER_STYLE } from "../../components/theme";
 import { useApp } from "../../context/AppContext";
 import { startSensor, stopSensor, simulateSpray } from "../../services/sensorService";
-import { getPerfumeById } from "../../services/perfumeService";
+import { getPerfumeById, getCleanerAlternatives } from "../../services/perfumeService";
+import { getPerfumeFlags, getSustainabilityScore, VOC_INFO } from "../../data/ingredientFlags";
 
 const TAG_STYLES = {
   "eco-friendly": { bg: "#E8EDE5", text: "#5C6B52" },
@@ -59,7 +61,144 @@ function PerfumeBottle({ color }) {
   );
 }
 
-function PerfumeCard({ perfume, sprayCount }) {
+const SEVERITY_COLORS = {
+  high: { bg: "#F2E0D8", text: "#9E5C46" },
+  moderate: { bg: "#F2E5D8", text: "#9E7C56" },
+  low: { bg: "#E8E6EC", text: "#6B6878" },
+};
+
+function PerfumeDetail({ perfume, onClose, onAdd, inLibrary }) {
+  const flags = getPerfumeFlags(perfume);
+  const score = getSustainabilityScore(perfume);
+  const alternatives = flags.length > 0 ? getCleanerAlternatives(perfume.id) : [];
+
+  return (
+    <Modal visible animationType="slide" presentationStyle="pageSheet">
+      <SafeAreaView style={detailStyles.modalSafe}>
+        <ScrollView style={detailStyles.modalScroll} showsVerticalScrollIndicator={false}>
+          <View style={detailStyles.modalHeader}>
+            <Pressable onPress={onClose} hitSlop={12}>
+              <Ionicons name="close" size={24} color={COLORS.text} />
+            </Pressable>
+          </View>
+
+          <View style={detailStyles.modalTop}>
+            <PerfumeBottle color={perfume.bottleColor || "#CCC"} />
+            <Text style={detailStyles.modalBrand}>{perfume.brand}</Text>
+            <Text style={detailStyles.modalName}>{perfume.name}</Text>
+            {perfume.description && (
+              <Text style={detailStyles.modalDescription}>{perfume.description}</Text>
+            )}
+          </View>
+
+          {/* Notes */}
+          <View style={detailStyles.notesSection}>
+            {perfume.notes_top?.length > 0 && (
+              <View style={detailStyles.noteRow}>
+                <Text style={detailStyles.noteLabel}>Top</Text>
+                <Text style={detailStyles.noteValues}>{perfume.notes_top.join(", ")}</Text>
+              </View>
+            )}
+            {perfume.notes_middle?.length > 0 && (
+              <View style={detailStyles.noteRow}>
+                <Text style={detailStyles.noteLabel}>Heart</Text>
+                <Text style={detailStyles.noteValues}>{perfume.notes_middle.join(", ")}</Text>
+              </View>
+            )}
+            {perfume.notes_base?.length > 0 && (
+              <View style={detailStyles.noteRow}>
+                <Text style={detailStyles.noteLabel}>Base</Text>
+                <Text style={detailStyles.noteValues}>{perfume.notes_base.join(", ")}</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Stats */}
+          <View style={detailStyles.statsRow}>
+            <View style={detailStyles.statItem}>
+              <Text style={detailStyles.statValue}>{perfume.longevity || "--"}</Text>
+              <Text style={detailStyles.statLabel}>Longevity</Text>
+            </View>
+            <View style={detailStyles.statItem}>
+              <Text style={detailStyles.statValue}>{perfume.sillage || "--"}</Text>
+              <Text style={detailStyles.statLabel}>Sillage</Text>
+            </View>
+            <View style={detailStyles.statItem}>
+              <Text style={detailStyles.statValue}>{score}</Text>
+              <Text style={detailStyles.statLabel}>Eco score</Text>
+            </View>
+          </View>
+
+          {/* Ingredient flags */}
+          {flags.length > 0 && (
+            <View style={detailStyles.flagsSection}>
+              <Text style={detailStyles.flagsSectionTitle}>Ingredient alerts</Text>
+              {flags.map((flag, i) => {
+                const colors = SEVERITY_COLORS[flag.severity] || SEVERITY_COLORS.low;
+                return (
+                  <View key={i} style={[detailStyles.flagCard, { backgroundColor: colors.bg }]}>
+                    <Text style={[detailStyles.flagLabel, { color: colors.text }]}>{flag.label}</Text>
+                    <Text style={detailStyles.flagDescription}>{flag.description}</Text>
+                    <Text style={detailStyles.flagTip}>{flag.tip}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          )}
+
+          {/* VOC details */}
+          {perfume.ingredients?.vocs?.length > 0 && (
+            <View style={detailStyles.flagsSection}>
+              <Text style={detailStyles.flagsSectionTitle}>VOC compounds detected</Text>
+              {perfume.ingredients.vocs.map((voc, i) => {
+                const info = VOC_INFO[voc];
+                return (
+                  <View key={i} style={detailStyles.vocItem}>
+                    <Text style={detailStyles.vocName}>{voc}</Text>
+                    <Text style={detailStyles.vocDesc}>{info?.description || "No data available."}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          )}
+
+          {/* Cleaner alternatives */}
+          {alternatives.length > 0 && (
+            <View style={detailStyles.flagsSection}>
+              <Text style={detailStyles.flagsSectionTitle}>Cleaner alternatives</Text>
+              {alternatives.map((alt) => (
+                <View key={alt.id} style={detailStyles.altCard}>
+                  <PerfumeBottle color={alt.bottleColor || "#CCC"} />
+                  <View style={detailStyles.altInfo}>
+                    <Text style={detailStyles.altBrand}>{alt.brand}</Text>
+                    <Text style={detailStyles.altName}>{alt.name}</Text>
+                    <Text style={detailStyles.altScore}>
+                      {alt.ingredients.naturally_derived_percentage}% naturally derived
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Add/Remove button */}
+          <Pressable
+            style={[detailStyles.addButton, inLibrary && detailStyles.removeButton]}
+            onPress={() => onAdd(perfume)}
+          >
+            <Text style={[detailStyles.addButtonText, inLibrary && detailStyles.removeButtonText]}>
+              {inLibrary ? "Remove from library" : "Add to my library"}
+            </Text>
+          </Pressable>
+
+          <View style={{ height: 40 }} />
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
+function PerfumeCard({ perfume, sprayCount, onPress }) {
   const tag = getTagForPerfume(perfume);
   const ts = TAG_STYLES[tag] || TAG_STYLES["standard"];
   const score = perfume.ingredients
@@ -67,21 +206,19 @@ function PerfumeCard({ perfume, sprayCount }) {
     : 50;
 
   return (
-    <Pressable style={({ pressed }) => [styles.perfumeCard, pressed && styles.cardPressed]}>
-      <View style={styles.cardRow}>
-        <PerfumeBottle color={perfume.bottleColor || "#CCC"} />
-        <View style={styles.cardInfo}>
-          <Text style={styles.brandText}>{perfume.brand}</Text>
-          <Text style={styles.nameText}>{perfume.name}</Text>
-          <Text style={styles.sprayCount}>{sprayCount} sprays</Text>
-        </View>
-        <ScoreRing score={score} />
-      </View>
-      <View style={styles.cardFooter}>
-        <View style={[styles.tag, { backgroundColor: ts.bg }]}>
-          <Text style={[styles.tagText, { color: ts.text }]}>{tag}</Text>
+    <Pressable style={({ pressed }) => [styles.perfumeCard, pressed && styles.cardPressed]} onPress={onPress}>
+      <PerfumeBottle color={perfume.bottleColor || "#CCC"} />
+      <View style={styles.cardInfo}>
+        <Text style={styles.brandText}>{perfume.brand}</Text>
+        <Text style={styles.nameText}>{perfume.name}</Text>
+        <Text style={styles.sprayCount}>{sprayCount} sprays</Text>
+        <View style={styles.tagsRow}>
+          <View style={[styles.tag, { backgroundColor: ts.bg }]}>
+            <Text style={[styles.tagText, { color: ts.text }]}>{tag}</Text>
+          </View>
         </View>
       </View>
+      <ScoreRing score={score} />
     </Pressable>
   );
 }
@@ -89,6 +226,8 @@ function PerfumeCard({ perfume, sprayCount }) {
 export default function HomeScreen() {
   const { state, dispatch, getLibraryPerfumes, getSprayEventsToday, getPerfumeSprayCount } = useApp();
   const [lastSprayPerfume, setLastSprayPerfume] = useState(null);
+  const [selectedPerfume, setSelectedPerfume] = useState(null);
+  const libraryIds = state.library.map((l) => l.perfumeId);
   const libraryPerfumes = getLibraryPerfumes();
   const todayEvents = getSprayEventsToday();
 
@@ -146,12 +285,14 @@ export default function HomeScreen() {
         </View>
 
         {/* Manual spray button */}
-        <Pressable
-          style={({ pressed }) => [styles.sprayButton, pressed && { opacity: 0.7 }]}
-          onPress={handleManualSpray}
-        >
-          <Text style={styles.sprayButtonText}>I just sprayed</Text>
-        </Pressable>
+        <View style={styles.sprayButtonRow}>
+          <Pressable
+            style={({ pressed }) => [styles.sprayButton, pressed && { opacity: 0.7 }]}
+            onPress={handleManualSpray}
+          >
+            <Text style={styles.sprayButtonText}>Spritzed! 𓇢𓆸</Text>
+          </Pressable>
+        </View>
 
         {lastSprayPerfume && (
           <View style={styles.sprayConfirm}>
@@ -181,34 +322,57 @@ export default function HomeScreen() {
             key={perfume.id}
             perfume={perfume}
             sprayCount={getPerfumeSprayCount(perfume.id)}
+            onPress={() => setSelectedPerfume(perfume)}
           />
         ))}
 
         <View style={{ height: 100 }} />
       </ScrollView>
+
+      {selectedPerfume && (
+        <PerfumeDetail
+          perfume={selectedPerfume}
+          onClose={() => setSelectedPerfume(null)}
+          onAdd={(perfume) => {
+            if (libraryIds.includes(perfume.id)) {
+              dispatch({ type: "REMOVE_FROM_LIBRARY", perfumeId: perfume.id });
+            } else {
+              dispatch({ type: "ADD_TO_LIBRARY", perfumeId: perfume.id });
+            }
+            setSelectedPerfume(null);
+          }}
+          inLibrary={libraryIds.includes(selectedPerfume.id)}
+        />
+      )}
     </SafeAreaView>
   );
 }
 
 function buildChartData(events) {
   const buckets = [
-    { label: "Morning", start: 6, end: 11, value: 0 },
-    { label: "Noon", start: 11, end: 15, value: 0 },
-    { label: "Evening", start: 15, end: 20, value: 0 },
-    { label: "Night", start: 20, end: 30, value: 0 },
+    { label: "Morning", icon: "sunny-outline", start: 6, end: 11, count: 0, lastTimestamp: null },
+    { label: "Noon", icon: "partly-sunny-outline", start: 11, end: 15, count: 0, lastTimestamp: null },
+    { label: "Evening", icon: "moon-outline", start: 15, end: 20, count: 0, lastTimestamp: null },
+    { label: "Night", icon: "cloudy-night-outline", start: 20, end: 30, count: 0, lastTimestamp: null },
   ];
 
   events.forEach((e) => {
     const hour = new Date(e.timestamp).getHours();
     for (const b of buckets) {
       if (hour >= b.start && hour < b.end) {
-        b.value = Math.max(b.value, e.score);
+        b.count++;
+        b.lastTimestamp = e.timestamp;
         break;
       }
     }
   });
 
-  return buckets.map((b) => ({ label: b.label, value: b.value || 10 + Math.random() * 15 }));
+  return buckets.map((b) => ({
+    label: b.label,
+    icon: b.icon,
+    value: b.count,
+    timestamp: b.lastTimestamp,
+  }));
 }
 
 const styles = StyleSheet.create({
@@ -238,12 +402,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     ...SHADOWS.neumorphic,
   },
+  sprayButtonRow: {
+    alignItems: "center",
+    marginTop: 16,
+  },
   sprayButton: {
     backgroundColor: COLORS.mutedGreen,
     borderRadius: 36,
-    paddingVertical: 14,
-    alignItems: "center",
-    marginTop: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 28,
   },
   sprayButtonText: {
     color: "#FFFFFF",
@@ -310,15 +477,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
     borderRadius: 36,
     padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 14,
     ...SHADOWS.neumorphicLight,
   },
   cardPressed: {
     opacity: 0.85,
-  },
-  cardRow: {
-    flexDirection: "row",
-    alignItems: "center",
   },
   bottle: {
     width: 65,
@@ -370,11 +535,11 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: COLORS.text,
   },
-  cardFooter: {
+  tagsRow: {
     flexDirection: "row",
-    alignItems: "center",
-    marginTop: 4,
-    marginLeft: 79,
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: 6,
   },
   tag: {
     borderRadius: 999,
@@ -384,5 +549,189 @@ const styles = StyleSheet.create({
   tagText: {
     fontSize: 11,
     fontWeight: "400",
+  },
+});
+
+const detailStyles = StyleSheet.create({
+  modalSafe: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  modalScroll: {
+    flex: 1,
+    paddingHorizontal: 24,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  modalTop: {
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  modalBrand: {
+    fontSize: 12,
+    color: COLORS.tabInactive,
+    textTransform: "uppercase",
+    marginTop: 12,
+  },
+  modalName: {
+    fontFamily: FONTS.title,
+    fontSize: 26,
+    color: COLORS.text,
+    marginTop: 4,
+  },
+  modalDescription: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    textAlign: "center",
+    lineHeight: 20,
+    marginTop: 12,
+    paddingHorizontal: 16,
+  },
+  notesSection: {
+    backgroundColor: COLORS.card,
+    borderRadius: 36,
+    padding: 20,
+    marginBottom: 16,
+    ...SHADOWS.neumorphicLight,
+  },
+  noteRow: {
+    flexDirection: "row",
+    marginBottom: 10,
+  },
+  noteLabel: {
+    width: 50,
+    fontSize: 12,
+    color: COLORS.tabInactive,
+    textTransform: "uppercase",
+    paddingTop: 2,
+  },
+  noteValues: {
+    flex: 1,
+    fontSize: 14,
+    color: COLORS.text,
+    lineHeight: 20,
+  },
+  statsRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 16,
+  },
+  statItem: {
+    flex: 1,
+    backgroundColor: COLORS.card,
+    borderRadius: 36,
+    paddingVertical: 16,
+    alignItems: "center",
+    ...SHADOWS.neumorphicLight,
+  },
+  statValue: {
+    fontSize: 14,
+    color: COLORS.text,
+    fontWeight: "500",
+    textTransform: "capitalize",
+  },
+  statLabel: {
+    fontSize: 11,
+    color: COLORS.tabInactive,
+    marginTop: 4,
+  },
+  flagsSection: {
+    marginBottom: 16,
+  },
+  flagsSectionTitle: {
+    fontSize: 12,
+    color: COLORS.tabInactive,
+    textTransform: "uppercase",
+    marginBottom: 10,
+  },
+  flagCard: {
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 8,
+  },
+  flagLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    marginBottom: 4,
+  },
+  flagDescription: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    lineHeight: 18,
+  },
+  flagTip: {
+    fontSize: 12,
+    color: COLORS.tabInactive,
+    marginTop: 6,
+    fontStyle: "italic",
+  },
+  vocItem: {
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 8,
+    ...SHADOWS.neumorphicLight,
+  },
+  vocName: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  vocDesc: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    lineHeight: 18,
+  },
+  altCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 36,
+    padding: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+    ...SHADOWS.neumorphicLight,
+  },
+  altInfo: {
+    flex: 1,
+  },
+  altBrand: {
+    fontSize: 11,
+    color: COLORS.tabInactive,
+    textTransform: "uppercase",
+  },
+  altName: {
+    fontSize: 15,
+    color: COLORS.text,
+    marginTop: 1,
+  },
+  altScore: {
+    fontSize: 12,
+    color: "#5C6B52",
+    marginTop: 3,
+  },
+  addButton: {
+    backgroundColor: COLORS.mutedGreen,
+    borderRadius: 36,
+    paddingVertical: 14,
+    alignItems: "center",
+    marginTop: 8,
+  },
+  addButtonText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "500",
+  },
+  removeButton: {
+    backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.tagBorder,
+  },
+  removeButtonText: {
+    color: COLORS.textSecondary,
   },
 });

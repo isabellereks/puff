@@ -29,5 +29,9 @@
     "react-native-svg": "15.15.3",
     "react-native-web": "^0.21.0"
   },
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "cheerio": "^1.2.0",
+    "node-fetch": "^2.7.0"
+  }
 }

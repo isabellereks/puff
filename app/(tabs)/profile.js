@@ -12,16 +12,19 @@ const MODE_INFO = {
     label: "Perfume Enthusiast",
     description: "Optimize for intensity and longevity tracking",
     icon: "sparkles-outline",
+    color: "#C4A860",
   },
   health: {
     label: "Health-Conscious",
     description: "Focus on exposure levels and sensitivity alerts",
     icon: "heart-outline",
+    color: "#7A8E6A",
   },
   general: {
     label: "General Consumer",
     description: "Simple view focused on how long perfume lasts",
     icon: "person-outline",
+    color: "#A67B5B",
   },
 };
 
@@ -90,16 +93,23 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>Profile</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>Profile</Text>
+          <Pressable onPress={() => setShowModeSelector(true)} hitSlop={12}>
+            <Ionicons name={currentMode.icon} size={22} color={currentMode.color} />
+          </Pressable>
+        </View>
 
         <View style={styles.avatarContainer}>
           <Pressable style={styles.avatarWrapper} onPress={pickImage}>
-            <View style={styles.avatar}>
-              {state.profileImage ? (
-                <Image source={{ uri: state.profileImage }} style={styles.avatarImage} />
-              ) : (
-                <Ionicons name="person" size={48} color={COLORS.tabInactive} />
-              )}
+            <View style={[styles.avatarRim, { borderColor: currentMode.color }]}>
+              <View style={styles.avatar}>
+                {state.profileImage ? (
+                  <Image source={{ uri: state.profileImage }} style={styles.avatarImage} />
+                ) : (
+                  <Ionicons name="person" size={48} color={COLORS.tabInactive} />
+                )}
+              </View>
             </View>
             <View style={styles.editBadge}>
               <Ionicons name="camera-outline" size={12} color="#FFFFFF" />
@@ -124,19 +134,6 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Current mode card */}
-        <Pressable
-          style={styles.modeCurrentCard}
-          onPress={() => setShowModeSelector(true)}
-        >
-          <Ionicons name={currentMode.icon} size={20} color="#5C6B52" />
-          <View style={styles.modeCurrentInfo}>
-            <Text style={styles.modeCurrentLabel}>{currentMode.label}</Text>
-            <Text style={styles.modeCurrentDesc}>{currentMode.description}</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={COLORS.tagBorder} />
-        </Pressable>
-
         {/* Sensor status */}
         <View style={styles.sensorCard}>
           <View style={styles.sensorRow}>
@@ -155,11 +152,12 @@ export default function ProfileScreen() {
             { icon: "settings-outline", label: "Settings" },
             { icon: "notifications-outline", label: "Notifications" },
             { icon: "shield-outline", label: "Privacy" },
+            { icon: "flask-outline", label: "Request a Perfume" },
             { icon: "help-circle-outline", label: "Help & Support" },
-          ].map((item, i) => (
+          ].map((item, i, arr) => (
             <View
               key={i}
-              style={[styles.menuItem, i < 3 && styles.menuItemBorder]}
+              style={[styles.menuItem, i < arr.length - 1 && styles.menuItemBorder]}
             >
               <Ionicons name={item.icon} size={20} color={COLORS.textSecondary} />
               <Text style={styles.menuLabel}>{item.label}</Text>
@@ -193,21 +191,34 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 24,
   },
+  titleRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 15,
+    marginBottom: 24,
+  },
   title: {
     fontFamily: FONTS.title,
     fontSize: 30,
     color: COLORS.text,
-    marginTop: 15,
-    marginBottom: 24,
   },
   avatarContainer: {
     alignItems: "center",
     marginBottom: 28,
   },
   avatarWrapper: {
-    width: 90,
-    height: 90,
+    width: 98,
+    height: 98,
     marginBottom: 14,
+  },
+  avatarRim: {
+    width: 98,
+    height: 98,
+    borderRadius: 49,
+    borderWidth: 3,
+    alignItems: "center",
+    justifyContent: "center",
   },
   avatar: {
     width: 90,
@@ -269,30 +280,6 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
 
-  modeCurrentCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#E8EDE5",
-    borderRadius: 36,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    marginBottom: 16,
-    gap: 12,
-  },
-  modeCurrentInfo: {
-    flex: 1,
-  },
-  modeCurrentLabel: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#5C6B52",
-  },
-  modeCurrentDesc: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    marginTop: 2,
-  },
-
   sensorCard: {
     backgroundColor: COLORS.card,
     borderRadius: 36,
@@ -328,8 +315,8 @@ const styles = StyleSheet.create({
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 14,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
   },
   menuItemBorder: {
     borderBottomWidth: 1,
