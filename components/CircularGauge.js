@@ -1,93 +1,101 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import Svg, {
-  Circle,
-  Defs,
-  LinearGradient,
-  Stop,
-  Path,
-} from "react-native-svg";
+import Svg, { Circle, Path, Line } from "react-native-svg";
 import { COLORS, FONTS } from "./theme";
 
-export default function CircularGauge({ value = 45, size = 220 }) {
-  const strokeWidth = 14;
-  const radius = (size - strokeWidth) / 2;
+function lerpColor(a, b, t) {
+  const ah = parseInt(a.slice(1), 16);
+  const bh = parseInt(b.slice(1), 16);
+  const ar = (ah >> 16) & 0xff, ag = (ah >> 8) & 0xff, ab = ah & 0xff;
+  const br = (bh >> 16) & 0xff, bg = (bh >> 8) & 0xff, bb = bh & 0xff;
+  const rr = Math.round(ar + (br - ar) * t);
+  const rg = Math.round(ag + (bg - ag) * t);
+  const rb = Math.round(ab + (bb - ab) * t);
+  return `rgb(${rr},${rg},${rb})`;
+}
+
+export default function CircularGauge({ value = 45, size = 330 }) {
+  const strokeWidth = 22;
+  const radius = (size - strokeWidth - 20) / 2;
   const center = size / 2;
 
-  // Arc from ~210° to ~330° (bottom-left to bottom-right, going through top)
-  const startAngle = 220;
-  const endAngle = 320;
-  const sweepAngle = 360 - startAngle + endAngle;
-
-  const polarToCartesian = (cx, cy, r, angleDeg) => {
-    const angleRad = ((angleDeg - 90) * Math.PI) / 180;
-    return {
-      x: cx + r * Math.cos(angleRad),
-      y: cy + r * Math.sin(angleRad),
-    };
+  const toXY = (angle) => {
+    const rad = ((angle - 90) * Math.PI) / 180;
+    return { x: center + radius * Math.cos(rad), y: center + radius * Math.sin(rad) };
   };
 
-  const describeArc = (cx, cy, r, start, end) => {
-    const startPt = polarToCartesian(cx, cy, r, start);
-    const endPt = polarToCartesian(cx, cy, r, end);
-    const largeArc = end - start > 180 ? 1 : 0;
-    return `M ${startPt.x} ${startPt.y} A ${r} ${r} 0 ${largeArc} 1 ${endPt.x} ${endPt.y}`;
+  // Full circle gradient using many small segments
+  const numSegs = 90;
+  const segAngle = 360 / numSegs;
+
+  const colorStops = [
+    { t: 0, color: "#D6BCB4" },
+    { t: 0.15, color: "#9AAC86" },
+    { t: 0.35, color: "#A8AD8A" },
+    { t: 0.50, color: "#BBAA92" },
+    { t: 0.65, color: "#CBB0A0" },
+    { t: 0.80, color: "#D8BAB0" },
+    { t: 0.95, color: "#DEC0B8" },
+    { t: 1, color: "#D6BCB4" },
+  ];
+
+  const getColor = (t) => {
+    for (let i = 0; i < colorStops.length - 1; i++) {
+      if (t >= colorStops[i].t && t <= colorStops[i + 1].t) {
+        const local = (t - colorStops[i].t) / (colorStops[i + 1].t - colorStops[i].t);
+        return lerpColor(colorStops[i].color, colorStops[i + 1].color, local);
+      }
+    }
+    return colorStops[colorStops.length - 1].color;
   };
 
-  // Background arc
-  const bgArcPath = describeArc(center, center, radius, startAngle, startAngle + sweepAngle);
+  const arcs = [];
+  for (let i = 0; i < numSegs; i++) {
+    const a1 = i * segAngle;
+    const a2 = (i + 1) * segAngle + 0.8;
+    const p1 = toXY(a1);
+    const p2 = toXY(Math.min(a2, 360));
+    arcs.push(
+      <Path
+        key={i}
+        d={`M ${p1.x} ${p1.y} A ${radius} ${radius} 0 0 1 ${p2.x} ${p2.y}`}
+        fill="none"
+        stroke={getColor(i / numSegs)}
+        strokeWidth={strokeWidth}
+      />
+    );
+  }
 
-  // Filled arc based on value (0-100)
-  const fillSweep = (value / 100) * sweepAngle;
-  const fillArcPath = describeArc(center, center, radius, startAngle, startAngle + fillSweep);
+  // Needle
+  const needleAngle = (value / 100) * 360;
+  const nRad = ((needleAngle - 90) * Math.PI) / 180;
+  const nFrom = {
+    x: center + (radius - strokeWidth / 2 + 2) * Math.cos(nRad),
+    y: center + (radius - strokeWidth / 2 + 2) * Math.sin(nRad),
+  };
+  const nTo = {
+    x: center + (radius + strokeWidth / 2 + 16) * Math.cos(nRad),
+    y: center + (radius + strokeWidth / 2 + 16) * Math.sin(nRad),
+  };
 
   return (
     <View style={styles.container}>
       <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        <Defs>
-          <LinearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <Stop offset="0%" stopColor={COLORS.mutedGreen} />
-            <Stop offset="50%" stopColor={COLORS.warmBrown} />
-            <Stop offset="100%" stopColor={COLORS.rose} />
-          </LinearGradient>
-        </Defs>
+        {arcs}
 
-        {/* Background arc */}
-        <Path
-          d={bgArcPath}
-          fill="none"
-          stroke={COLORS.progressBg}
-          strokeWidth={strokeWidth}
+        {/* Needle */}
+        <Line
+          x1={nFrom.x}
+          y1={nFrom.y}
+          x2={nTo.x}
+          y2={nTo.y}
+          stroke="#C0A590"
+          strokeWidth={1.8}
           strokeLinecap="round"
         />
-
-        {/* Gradient filled arc */}
-        <Path
-          d={fillArcPath}
-          fill="none"
-          stroke="url(#gaugeGradient)"
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-        />
-
-        {/* Needle indicator dot */}
-        {(() => {
-          const needleAngle = startAngle + fillSweep;
-          const needlePt = polarToCartesian(center, center, radius, needleAngle);
-          return (
-            <Circle
-              cx={needlePt.x}
-              cy={needlePt.y}
-              r={6}
-              fill={COLORS.card}
-              stroke={COLORS.warmBrown}
-              strokeWidth={2}
-            />
-          );
-        })()}
+        <Circle cx={nTo.x} cy={nTo.y} r={2.5} fill="#C0A590" />
       </Svg>
 
-      {/* Center text */}
       <View style={[styles.centerText, { width: size, height: size }]}>
         <Text style={styles.valueText}>{value}</Text>
         <Text style={styles.rangeText}>
@@ -107,16 +115,15 @@ const styles = StyleSheet.create({
     position: "absolute",
     alignItems: "center",
     justifyContent: "center",
-    paddingTop: 10,
   },
   valueText: {
-    fontSize: 64,
+    fontSize: 56,
     fontWeight: "300",
     color: COLORS.text,
     fontFamily: FONTS.serif,
   },
   rangeText: {
-    fontSize: 13,
+    fontSize: 12,
     color: COLORS.textSecondary,
     textAlign: "center",
     lineHeight: 18,
