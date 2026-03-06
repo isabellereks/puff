@@ -2,6 +2,7 @@ import { Slot } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
+import { AppProvider } from "../context/AppContext";
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -19,10 +20,10 @@ export default function RootLayout() {
   }
 
   return (
-    <>
+    <AppProvider>
       <StatusBar style="dark" />
       <Slot />
-    </>
+    </AppProvider>
   );
 }
 

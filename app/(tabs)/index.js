@@ -1,10 +1,13 @@
-import React from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { View, Text, ScrollView, StyleSheet, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
 import CircularGauge from "../../components/CircularGauge";
 import SprayChart from "../../components/SprayChart";
 import { COLORS, FONTS, SHADOWS, NUMBER_STYLE } from "../../components/theme";
+import { useApp } from "../../context/AppContext";
+import { startSensor, stopSensor, simulateSpray } from "../../services/sensorService";
+import { getPerfumeById } from "../../services/perfumeService";
 
 const TAG_STYLES = {
   "eco-friendly": { bg: "#E8EDE5", text: "#5C6B52" },
@@ -14,12 +17,14 @@ const TAG_STYLES = {
   "high voc": { bg: "#F2E5D8", text: "#9E7C56" },
 };
 
-const PERFUMES = [
-  { id: 1, brand: "Le Labo", name: "Santal 33", sprays: 127, score: 82, tag: "eco-friendly", bottleColor: "#E8DFD0" },
-  { id: 2, brand: "Aesop", name: "Rozu", sprays: 89, score: 91, tag: "carbon neutral", bottleColor: "#D4A44A" },
-  { id: 3, brand: "Byredo", name: "Gypsy Water", sprays: 64, score: 58, tag: "standard", bottleColor: "#2C2C2C" },
-  { id: 4, brand: "Diptyque", name: "Philosykos", sprays: 42, score: 74, tag: "eco-friendly", bottleColor: "#C9B896" },
-];
+function getTagForPerfume(perfume) {
+  if (!perfume.ingredients) return "standard";
+  const ing = perfume.ingredients;
+  if (ing.naturally_derived_percentage >= 80 && !ing.phthalates) return "eco-friendly";
+  if (!ing.phthalates && !ing.parabens && !ing.synthetic_musks) return "clean";
+  if (ing.vocs && ing.vocs.length >= 3) return "high voc";
+  return "standard";
+}
 
 function ScoreRing({ score, size = 44 }) {
   const strokeWidth = 3;
@@ -54,22 +59,27 @@ function PerfumeBottle({ color }) {
   );
 }
 
-function PerfumeCard({ perfume }) {
-  const ts = TAG_STYLES[perfume.tag] || TAG_STYLES["standard"];
+function PerfumeCard({ perfume, sprayCount }) {
+  const tag = getTagForPerfume(perfume);
+  const ts = TAG_STYLES[tag] || TAG_STYLES["standard"];
+  const score = perfume.ingredients
+    ? Math.round(perfume.ingredients.naturally_derived_percentage)
+    : 50;
+
   return (
     <Pressable style={({ pressed }) => [styles.perfumeCard, pressed && styles.cardPressed]}>
       <View style={styles.cardRow}>
-        <PerfumeBottle color={perfume.bottleColor} />
+        <PerfumeBottle color={perfume.bottleColor || "#CCC"} />
         <View style={styles.cardInfo}>
           <Text style={styles.brandText}>{perfume.brand}</Text>
           <Text style={styles.nameText}>{perfume.name}</Text>
-          <Text style={styles.sprayCount}>{perfume.sprays} sprays</Text>
+          <Text style={styles.sprayCount}>{sprayCount} sprays</Text>
         </View>
-        <ScoreRing score={perfume.score} />
+        <ScoreRing score={score} />
       </View>
       <View style={styles.cardFooter}>
         <View style={[styles.tag, { backgroundColor: ts.bg }]}>
-          <Text style={[styles.tagText, { color: ts.text }]}>{perfume.tag}</Text>
+          <Text style={[styles.tagText, { color: ts.text }]}>{tag}</Text>
         </View>
       </View>
     </Pressable>
@@ -77,6 +87,51 @@ function PerfumeCard({ perfume }) {
 }
 
 export default function HomeScreen() {
+  const { state, dispatch, getLibraryPerfumes, getSprayEventsToday, getPerfumeSprayCount } = useApp();
+  const [lastSprayPerfume, setLastSprayPerfume] = useState(null);
+  const libraryPerfumes = getLibraryPerfumes();
+  const todayEvents = getSprayEventsToday();
+
+  // Start mock sensor
+  useEffect(() => {
+    startSensor(
+      (reading) => {
+        dispatch({ type: "SET_LIVE_SCORE", score: reading.score });
+        dispatch({ type: "ADD_SENSOR_READING", reading });
+      },
+      (sprayEvent) => {
+        // Auto-detected spray
+        dispatch({ type: "SET_LIVE_SCORE", score: sprayEvent.score });
+      }
+    );
+    dispatch({ type: "SET_SENSOR_CONNECTED", connected: true });
+
+    return () => {
+      stopSensor();
+      dispatch({ type: "SET_SENSOR_CONNECTED", connected: false });
+    };
+  }, []);
+
+  const handleManualSpray = useCallback(() => {
+    const event = simulateSpray(60);
+    dispatch({ type: "SET_LIVE_SCORE", score: event.score });
+
+    // Default to first perfume in library if none selected
+    const perfumeId = libraryPerfumes.length > 0 ? libraryPerfumes[0].id : null;
+    if (perfumeId) {
+      dispatch({ type: "LOG_SPRAY", perfumeId, score: event.score, confirmed: true });
+      setLastSprayPerfume(getPerfumeById(perfumeId));
+      setTimeout(() => setLastSprayPerfume(null), 3000);
+    }
+  }, [libraryPerfumes]);
+
+  // Get preferred range for the first perfume (or default)
+  const activePerfume = libraryPerfumes[0];
+  const preferredRange = activePerfume?.preferredRange || [40, 60];
+
+  // Build chart data from today's events
+  const chartData = buildChartData(todayEvents);
+
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView
@@ -87,23 +142,73 @@ export default function HomeScreen() {
         <Text style={styles.title}>Your Puff Board</Text>
 
         <View style={styles.gaugeCard}>
-          <CircularGauge value={45} size={240} />
+          <CircularGauge value={state.liveScore} size={240} preferredRange={preferredRange} />
         </View>
 
-        <Text style={styles.sectionTitle}>Recent spray events</Text>
+        {/* Manual spray button */}
+        <Pressable
+          style={({ pressed }) => [styles.sprayButton, pressed && { opacity: 0.7 }]}
+          onPress={handleManualSpray}
+        >
+          <Text style={styles.sprayButtonText}>I just sprayed</Text>
+        </Pressable>
+
+        {lastSprayPerfume && (
+          <View style={styles.sprayConfirm}>
+            <Text style={styles.sprayConfirmText}>
+              Logged spray for {lastSprayPerfume.name}
+            </Text>
+          </View>
+        )}
+
+        {/* Sensor status */}
+        <View style={styles.sensorStatus}>
+          <View style={[styles.statusDot, state.sensorConnected && styles.statusDotActive]} />
+          <Text style={styles.statusText}>
+            {state.sensorConnected ? "Sensor connected" : "Sensor offline"}
+          </Text>
+          <Text style={styles.statusScore}>{todayEvents.length} sprays today</Text>
+        </View>
+
+        <Text style={styles.sectionTitle}>Today's scent timeline</Text>
         <View style={styles.chartCard}>
-          <SprayChart />
+          <SprayChart data={chartData} />
         </View>
 
         <Text style={styles.collectionLabel}>Your Collection</Text>
-        {PERFUMES.map((perfume) => (
-          <PerfumeCard key={perfume.id} perfume={perfume} />
+        {libraryPerfumes.map((perfume) => (
+          <PerfumeCard
+            key={perfume.id}
+            perfume={perfume}
+            sprayCount={getPerfumeSprayCount(perfume.id)}
+          />
         ))}
 
         <View style={{ height: 100 }} />
       </ScrollView>
     </SafeAreaView>
   );
+}
+
+function buildChartData(events) {
+  const buckets = [
+    { label: "Morning", start: 6, end: 11, value: 0 },
+    { label: "Noon", start: 11, end: 15, value: 0 },
+    { label: "Evening", start: 15, end: 20, value: 0 },
+    { label: "Night", start: 20, end: 30, value: 0 },
+  ];
+
+  events.forEach((e) => {
+    const hour = new Date(e.timestamp).getHours();
+    for (const b of buckets) {
+      if (hour >= b.start && hour < b.end) {
+        b.value = Math.max(b.value, e.score);
+        break;
+      }
+    }
+  });
+
+  return buckets.map((b) => ({ label: b.label, value: b.value || 10 + Math.random() * 15 }));
 }
 
 const styles = StyleSheet.create({
@@ -128,10 +233,58 @@ const styles = StyleSheet.create({
   },
   gaugeCard: {
     backgroundColor: COLORS.card,
-    borderRadius: 24,
+    borderRadius: 36,
     paddingVertical: 30,
     alignItems: "center",
     ...SHADOWS.neumorphic,
+  },
+  sprayButton: {
+    backgroundColor: COLORS.mutedGreen,
+    borderRadius: 36,
+    paddingVertical: 14,
+    alignItems: "center",
+    marginTop: 16,
+  },
+  sprayButtonText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "500",
+  },
+  sprayConfirm: {
+    backgroundColor: "#E8EDE5",
+    borderRadius: 36,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignItems: "center",
+    marginTop: 10,
+  },
+  sprayConfirmText: {
+    color: "#5C6B52",
+    fontSize: 13,
+  },
+  sensorStatus: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 16,
+    gap: 8,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.tabInactive,
+  },
+  statusDotActive: {
+    backgroundColor: "#7A8E6A",
+  },
+  statusText: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    flex: 1,
+  },
+  statusScore: {
+    fontSize: 12,
+    color: COLORS.tabInactive,
   },
   sectionTitle: {
     fontSize: 12,
@@ -142,12 +295,10 @@ const styles = StyleSheet.create({
   },
   chartCard: {
     backgroundColor: COLORS.card,
-    borderRadius: 20,
+    borderRadius: 36,
     padding: 20,
     ...SHADOWS.neumorphicLight,
   },
-
-  // Collection
   collectionLabel: {
     fontSize: 12,
     color: COLORS.tabInactive,
@@ -155,16 +306,9 @@ const styles = StyleSheet.create({
     marginTop: 28,
     marginBottom: 14,
   },
-  collectionCard: {
-    backgroundColor: COLORS.card,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 4,
-    ...SHADOWS.neumorphicLight,
-  },
   perfumeCard: {
     backgroundColor: COLORS.card,
-    borderRadius: 18,
+    borderRadius: 36,
     padding: 16,
     marginBottom: 14,
     ...SHADOWS.neumorphicLight,
@@ -240,10 +384,5 @@ const styles = StyleSheet.create({
   tagText: {
     fontSize: 11,
     fontWeight: "400",
-  },
-  divider: {
-    height: 1,
-    backgroundColor: "#EDEAE4",
-    marginLeft: 79,
   },
 });

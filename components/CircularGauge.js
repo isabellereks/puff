@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import Svg, { Circle, Path, Line } from "react-native-svg";
+import Svg, { Circle, Path, Line, Rect } from "react-native-svg";
 import { COLORS, FONTS, NUMBER_STYLE } from "./theme";
 
 function lerpColor(a, b, t) {
@@ -14,7 +14,7 @@ function lerpColor(a, b, t) {
   return `rgb(${rr},${rg},${rb})`;
 }
 
-export default function CircularGauge({ value = 45, size = 330 }) {
+export default function CircularGauge({ value = 45, size = 330, preferredRange = [40, 50] }) {
   const strokeWidth = 22;
   const radius = (size - strokeWidth - 20) / 2;
   const center = size / 2;
@@ -66,6 +66,14 @@ export default function CircularGauge({ value = 45, size = 330 }) {
     );
   }
 
+  // Preferred range markers
+  const rangeStartAngle = (preferredRange[0] / 100) * 360;
+  const rangeEndAngle = (preferredRange[1] / 100) * 360;
+  const markerRadius = radius + strokeWidth / 2 + 6;
+
+  const rangeStart = toXYCustom(rangeStartAngle, markerRadius, center);
+  const rangeEnd = toXYCustom(rangeEndAngle, markerRadius, center);
+
   // Needle
   const needleAngle = (value / 100) * 360;
   const nRad = ((needleAngle - 90) * Math.PI) / 180;
@@ -78,10 +86,16 @@ export default function CircularGauge({ value = 45, size = 330 }) {
     y: center + (radius + strokeWidth / 2 + 16) * Math.sin(nRad),
   };
 
+  const inRange = value >= preferredRange[0] && value <= preferredRange[1];
+
   return (
     <View style={styles.container}>
       <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         {arcs}
+
+        {/* Preferred range tick marks */}
+        <Circle cx={rangeStart.x} cy={rangeStart.y} r={3} fill="#9AAC86" opacity={0.6} />
+        <Circle cx={rangeEnd.x} cy={rangeEnd.y} r={3} fill="#9AAC86" opacity={0.6} />
 
         {/* Needle */}
         <Line
@@ -99,11 +113,18 @@ export default function CircularGauge({ value = 45, size = 330 }) {
       <View style={[styles.centerText, { width: size, height: size }]}>
         <Text style={styles.valueText}>{value}</Text>
         <Text style={styles.rangeText}>
-          Your ideal range for this{"\n"}perfume: 40–50.
+          {inRange
+            ? "Within your ideal range"
+            : `Your ideal range: ${preferredRange[0]}–${preferredRange[1]}`}
         </Text>
       </View>
     </View>
   );
+}
+
+function toXYCustom(angle, radius, center) {
+  const rad = ((angle - 90) * Math.PI) / 180;
+  return { x: center + radius * Math.cos(rad), y: center + radius * Math.sin(rad) };
 }
 
 const styles = StyleSheet.create({

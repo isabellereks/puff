@@ -3,8 +3,8 @@ import { View, Text, StyleSheet } from "react-native";
 import Svg, { Path, Circle, Line, Text as SvgText } from "react-native-svg";
 import { COLORS } from "./theme";
 
-export default function SprayChart() {
-  const data = [
+export default function SprayChart({ data }) {
+  const chartData = data || [
     { label: "Morning", value: 30 },
     { label: "Noon", value: 45 },
     { label: "Evening", value: 35 },
@@ -20,8 +20,8 @@ export default function SprayChart() {
   const maxVal = 60;
   const minVal = 0;
 
-  const points = data.map((d, i) => ({
-    x: padding.left + (i / (data.length - 1)) * chartW,
+  const points = chartData.map((d, i) => ({
+    x: padding.left + (i / (chartData.length - 1)) * chartW,
     y: padding.top + chartH - ((d.value - minVal) / (maxVal - minVal)) * chartH,
   }));
 
@@ -74,7 +74,7 @@ export default function SprayChart() {
         ))}
 
         {/* Labels */}
-        {data.map((d, i) => (
+        {chartData.map((d, i) => (
           <SvgText
             key={i}
             x={points[i].x}
