@@ -17,7 +17,7 @@ export const COLORS = {
 };
 
 export const FONTS = {
-  title: "Marcellus-Regular",
+  title: "InstrumentSerif-Regular",
   serif: "PlayfairDisplay-Regular",
   serifBold: "PlayfairDisplay-Bold",
   sans: "System",

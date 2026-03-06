@@ -163,7 +163,6 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   perfumeName: {
-    fontFamily: FONTS.title,
     fontSize: 17,
     color: COLORS.text,
     marginTop: 1,

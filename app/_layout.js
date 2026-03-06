@@ -7,7 +7,7 @@ export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     "PlayfairDisplay-Regular": require("../assets/fonts/PlayfairDisplay-Regular.ttf"),
     "PlayfairDisplay-Bold": require("../assets/fonts/PlayfairDisplay-Bold.ttf"),
-    "Marcellus-Regular": require("../assets/fonts/Marcellus-Regular.ttf"),
+    "InstrumentSerif-Regular": require("../assets/fonts/InstrumentSerif-Regular.ttf"),
   });
 
   if (!fontsLoaded) {

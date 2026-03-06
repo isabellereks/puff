@@ -89,7 +89,6 @@ const styles = StyleSheet.create({
     ...SHADOWS.neumorphicLight,
   },
   name: {
-    fontFamily: FONTS.title,
     fontSize: 22,
     color: COLORS.text,
   },
@@ -124,13 +123,14 @@ const styles = StyleSheet.create({
   menuCard: {
     backgroundColor: COLORS.card,
     borderRadius: 18,
+    marginHorizontal: 16,
     ...SHADOWS.neumorphicLight,
   },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 18,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
   },
   menuItemBorder: {
     borderBottomWidth: 1,
@@ -138,8 +138,8 @@ const styles = StyleSheet.create({
   },
   menuLabel: {
     flex: 1,
-    fontSize: 15,
-    color: COLORS.text,
+    fontSize: 14,
+    color: COLORS.textSecondary,
     marginLeft: 14,
   },
 });
