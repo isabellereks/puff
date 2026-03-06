@@ -7,7 +7,7 @@ import { COLORS } from "../../components/theme";
 function FloatingTabBar({ state, descriptors, navigation }) {
   const insets = useSafeAreaInsets();
   const tabs = [
-    { icon: "flower-outline", iconActive: "flower", label: "Home" },
+    { icon: "heart-outline", iconActive: "heart", label: "Home" },
     { icon: "search-outline", iconActive: "search", label: "Library" },
     { icon: "leaf-outline", iconActive: "leaf", label: "Wellness" },
     { icon: "person-outline", iconActive: "person", label: "Profile" },

@@ -13,7 +13,7 @@ export default function SprayChart() {
 
   const width = 300;
   const height = 120;
-  const padding = { left: 10, right: 10, top: 15, bottom: 30 };
+  const padding = { left: 35, right: 35, top: 15, bottom: 30 };
   const chartW = width - padding.left - padding.right;
   const chartH = height - padding.top - padding.bottom;
 

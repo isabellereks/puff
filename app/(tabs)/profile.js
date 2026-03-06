@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, FONTS, SHADOWS } from "../../components/theme";
+import { COLORS, FONTS, SHADOWS, NUMBER_STYLE } from "../../components/theme";
 
 export default function ProfileScreen() {
   return (
@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   title: {
-    fontFamily: FONTS.serif,
+    fontFamily: FONTS.title,
     fontSize: 30,
     color: COLORS.text,
     marginTop: 15,
@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
     ...SHADOWS.neumorphicLight,
   },
   name: {
-    fontFamily: FONTS.serifBold,
+    fontFamily: FONTS.title,
     fontSize: 22,
     color: COLORS.text,
   },
@@ -113,9 +113,9 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 24,
-    fontWeight: "600",
     color: COLORS.text,
     marginBottom: 4,
+    ...NUMBER_STYLE,
   },
   statLabel: {
     fontSize: 12,

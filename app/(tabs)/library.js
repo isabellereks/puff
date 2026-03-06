@@ -5,41 +5,25 @@ import {
   ScrollView,
   StyleSheet,
   Image,
+  TextInput,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { COLORS, FONTS, SHADOWS } from "../../components/theme";
 
+const TAG_STYLES = {
+  "clean": { bg: "#E8E6EC", text: "#6B6878" },
+  "high voc": { bg: "#F2E5D8", text: "#9E7C56" },
+  "long-lasting": { bg: "#EAE6DC", text: "#7A7452" },
+  "signature scent": { bg: "#E8EDE5", text: "#5C6B52" },
+};
+
 const PERFUMES = [
-  {
-    id: 1,
-    name: "Le Labo Santal 33",
-    tags: ["Clean", "High VOC"],
-    color: "#E8DFD0",
-  },
-  {
-    id: 2,
-    name: "Aesop Rozu",
-    tags: ["Long-lasting", "Signature Scent"],
-    color: "#D4A44A",
-  },
-  {
-    id: 3,
-    name: "Byredo Gypsy Water",
-    tags: ["Clean", "High VOC"],
-    color: "#2C2C2C",
-  },
-  {
-    id: 4,
-    name: "Lynene Rozu",
-    tags: ["Long-lasting", "Signature Scent"],
-    color: "#C9B896",
-  },
-  {
-    id: 5,
-    name: "Matror Violene",
-    tags: ["Clean", "Long-lasting"],
-    color: "#8B5E3C",
-  },
+  { id: 1, brand: "Le Labo", name: "Santal 33", tags: ["Clean", "High VOC"], color: "#E8DFD0" },
+  { id: 2, brand: "Aesop", name: "Rozu", tags: ["Long-lasting", "Signature Scent"], color: "#D4A44A" },
+  { id: 3, brand: "Byredo", name: "Gypsy Water", tags: ["Clean", "High VOC"], color: "#2C2C2C" },
+  { id: 4, brand: "Lynene", name: "Rozu", tags: ["Long-lasting", "Signature Scent"], color: "#C9B896" },
+  { id: 5, brand: "Matror", name: "Violene", tags: ["Clean", "Long-lasting"], color: "#8B5E3C" },
 ];
 
 function PerfumeBottle({ color }) {
@@ -63,17 +47,30 @@ export default function LibraryScreen() {
       >
         <Text style={styles.title}>Perfume Library</Text>
 
+        <View style={styles.searchBar}>
+          <Ionicons name="search-outline" size={18} color={COLORS.tabInactive} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search perfumes..."
+            placeholderTextColor={COLORS.tabInactive}
+          />
+        </View>
+
         {PERFUMES.map((perfume) => (
           <View key={perfume.id} style={styles.card}>
             <PerfumeBottle color={perfume.color} />
             <View style={styles.cardContent}>
+              <Text style={styles.brandName}>{perfume.brand}</Text>
               <Text style={styles.perfumeName}>{perfume.name}</Text>
               <View style={styles.tagsRow}>
-                {perfume.tags.map((tag, i) => (
-                  <View key={i} style={styles.tag}>
-                    <Text style={styles.tagText}>{tag}</Text>
-                  </View>
-                ))}
+                {perfume.tags.map((tag, i) => {
+                  const ts = TAG_STYLES[tag.toLowerCase()] || { bg: "#F0EDE8", text: "#7A7A7A" };
+                  return (
+                    <View key={i} style={[styles.tag, { backgroundColor: ts.bg }]}>
+                      <Text style={[styles.tagText, { color: ts.text }]}>{tag.toLowerCase()}</Text>
+                    </View>
+                  );
+                })}
               </View>
             </View>
           </View>
@@ -96,11 +93,31 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
   },
   title: {
-    fontFamily: FONTS.serif,
+    fontFamily: FONTS.title,
     fontSize: 30,
     color: COLORS.text,
     marginTop: 15,
-    marginBottom: 20,
+    marginBottom: 16,
+  },
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.card,
+    borderRadius: 28,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 18,
+    shadowColor: "#C8C2B8",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: COLORS.text,
+    marginLeft: 10,
   },
   card: {
     backgroundColor: COLORS.card,
@@ -140,10 +157,16 @@ const styles = StyleSheet.create({
   cardContent: {
     flex: 1,
   },
+  brandName: {
+    fontSize: 11,
+    color: COLORS.tabInactive,
+    textTransform: "uppercase",
+  },
   perfumeName: {
-    fontSize: 16,
-    fontWeight: "600",
+    fontFamily: FONTS.title,
+    fontSize: 17,
     color: COLORS.text,
+    marginTop: 1,
     marginBottom: 8,
   },
   tagsRow: {
@@ -152,16 +175,12 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   tag: {
-    backgroundColor: COLORS.tagBg,
-    borderWidth: 1,
-    borderColor: COLORS.tagBorder,
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
   },
   tagText: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    fontWeight: "500",
+    fontSize: 11,
+    fontWeight: "400",
   },
 });

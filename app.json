@@ -31,7 +31,7 @@
       [
         "expo-font",
         {
-          "fonts": ["./assets/fonts/PlayfairDisplay-Regular.ttf", "./assets/fonts/PlayfairDisplay-Bold.ttf"]
+          "fonts": ["./assets/fonts/PlayfairDisplay-Regular.ttf", "./assets/fonts/PlayfairDisplay-Bold.ttf", "./assets/fonts/Marcellus-Regular.ttf"]
         }
       ]
     ]

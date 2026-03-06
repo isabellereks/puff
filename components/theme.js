@@ -17,9 +17,16 @@ export const COLORS = {
 };
 
 export const FONTS = {
+  title: "Marcellus-Regular",
   serif: "PlayfairDisplay-Regular",
   serifBold: "PlayfairDisplay-Bold",
   sans: "System",
+  number: "System",
+};
+
+export const NUMBER_STYLE = {
+  fontFamily: "System",
+  fontWeight: "200",
 };
 
 export const SHADOWS = {

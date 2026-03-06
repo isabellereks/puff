@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import Svg, { Circle, Path, Line } from "react-native-svg";
-import { COLORS, FONTS } from "./theme";
+import { COLORS, FONTS, NUMBER_STYLE } from "./theme";
 
 function lerpColor(a, b, t) {
   const ah = parseInt(a.slice(1), 16);
@@ -118,9 +118,8 @@ const styles = StyleSheet.create({
   },
   valueText: {
     fontSize: 56,
-    fontWeight: "300",
     color: COLORS.text,
-    fontFamily: FONTS.serif,
+    ...NUMBER_STYLE,
   },
   rangeText: {
     fontSize: 12,
