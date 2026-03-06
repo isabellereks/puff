@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, Pressable, Modal, ScrollView } from "react-native";
+import { View, Text, StyleSheet, Pressable, Modal, ScrollView, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { COLORS, FONTS, SHADOWS, NUMBER_STYLE } from "../../components/theme";
 import { useApp } from "../../context/AppContext";
 import { getSensorStatus } from "../../services/sensorService";
@@ -74,15 +75,36 @@ export default function ProfileScreen() {
 
   const currentMode = MODE_INFO[state.settings.mode] || MODE_INFO.general;
 
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (!result.canceled) {
+      dispatch({ type: "SET_PROFILE_IMAGE", uri: result.assets[0].uri });
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.title}>Profile</Text>
 
         <View style={styles.avatarContainer}>
-          <View style={styles.avatar}>
-            <Ionicons name="person" size={48} color={COLORS.tabInactive} />
-          </View>
+          <Pressable style={styles.avatarWrapper} onPress={pickImage}>
+            <View style={styles.avatar}>
+              {state.profileImage ? (
+                <Image source={{ uri: state.profileImage }} style={styles.avatarImage} />
+              ) : (
+                <Ionicons name="person" size={48} color={COLORS.tabInactive} />
+              )}
+            </View>
+            <View style={styles.editBadge}>
+              <Ionicons name="camera-outline" size={12} color="#FFFFFF" />
+            </View>
+          </Pressable>
           <Text style={styles.name}>Isabelle R.</Text>
           <Text style={styles.subtitle}>Scent enthusiast since 2023</Text>
         </View>
@@ -182,6 +204,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 28,
   },
+  avatarWrapper: {
+    width: 90,
+    height: 90,
+    marginBottom: 14,
+  },
   avatar: {
     width: 90,
     height: 90,
@@ -189,8 +216,25 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.progressBg,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 14,
+    overflow: "hidden",
     ...SHADOWS.neumorphicLight,
+  },
+  avatarImage: {
+    width: 90,
+    height: 90,
+  },
+  editBadge: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: COLORS.tabActive,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: COLORS.background,
   },
   name: {
     fontSize: 22,
@@ -279,7 +323,6 @@ const styles = StyleSheet.create({
   menuCard: {
     backgroundColor: COLORS.card,
     borderRadius: 36,
-    marginHorizontal: 16,
     ...SHADOWS.neumorphicLight,
   },
   menuItem: {

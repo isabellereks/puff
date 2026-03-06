@@ -321,11 +321,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     marginBottom: 18,
-    shadowColor: "#C8C2B8",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+    ...SHADOWS.neumorphicLight,
   },
   searchInput: {
     flex: 1,

@@ -1,9 +1,11 @@
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import React, { useState } from "react";
+import { View, StyleSheet } from "react-native";
 import Svg, { Path, Circle, Line, Text as SvgText } from "react-native-svg";
 import { COLORS } from "./theme";
 
 export default function SprayChart({ data }) {
+  const [layoutWidth, setLayoutWidth] = useState(0);
+
   const chartData = data || [
     { label: "Morning", value: 30 },
     { label: "Noon", value: 45 },
@@ -11,7 +13,7 @@ export default function SprayChart({ data }) {
     { label: "Night", value: 50 },
   ];
 
-  const width = 300;
+  const width = layoutWidth || 280;
   const height = 120;
   const padding = { left: 35, right: 35, top: 15, bottom: 30 };
   const chartW = width - padding.left - padding.right;
@@ -25,7 +27,6 @@ export default function SprayChart({ data }) {
     y: padding.top + chartH - ((d.value - minVal) / (maxVal - minVal)) * chartH,
   }));
 
-  // Create smooth curve path
   let pathD = `M ${points[0].x} ${points[0].y}`;
   for (let i = 0; i < points.length - 1; i++) {
     const cp1x = points[i].x + (points[i + 1].x - points[i].x) / 3;
@@ -36,64 +37,65 @@ export default function SprayChart({ data }) {
   }
 
   return (
-    <View style={styles.container}>
-      <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
-        {/* Grid lines */}
-        {[0, 1, 2].map((i) => (
-          <Line
-            key={i}
-            x1={padding.left}
-            y1={padding.top + (i / 2) * chartH}
-            x2={width - padding.right}
-            y2={padding.top + (i / 2) * chartH}
-            stroke={COLORS.progressBg}
-            strokeWidth={0.5}
-          />
-        ))}
+    <View
+      style={styles.container}
+      onLayout={(e) => setLayoutWidth(e.nativeEvent.layout.width)}
+    >
+      {layoutWidth > 0 && (
+        <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+          {[0, 1, 2].map((i) => (
+            <Line
+              key={i}
+              x1={padding.left}
+              y1={padding.top + (i / 2) * chartH}
+              x2={width - padding.right}
+              y2={padding.top + (i / 2) * chartH}
+              stroke={COLORS.progressBg}
+              strokeWidth={0.5}
+            />
+          ))}
 
-        {/* Line */}
-        <Path
-          d={pathD}
-          fill="none"
-          stroke={COLORS.warmBrown}
-          strokeWidth={2}
-          strokeLinecap="round"
-        />
-
-        {/* Data points */}
-        {points.map((p, i) => (
-          <Circle
-            key={i}
-            cx={p.x}
-            cy={p.y}
-            r={3.5}
-            fill={COLORS.card}
+          <Path
+            d={pathD}
+            fill="none"
             stroke={COLORS.warmBrown}
-            strokeWidth={1.5}
+            strokeWidth={2}
+            strokeLinecap="round"
           />
-        ))}
 
-        {/* Labels */}
-        {chartData.map((d, i) => (
-          <SvgText
-            key={i}
-            x={points[i].x}
-            y={height - 8}
-            fontSize={11}
-            fill={COLORS.textSecondary}
-            textAnchor="middle"
-          >
-            {d.label}
-          </SvgText>
-        ))}
-      </Svg>
+          {points.map((p, i) => (
+            <Circle
+              key={i}
+              cx={p.x}
+              cy={p.y}
+              r={3.5}
+              fill={COLORS.card}
+              stroke={COLORS.warmBrown}
+              strokeWidth={1.5}
+            />
+          ))}
+
+          {chartData.map((d, i) => (
+            <SvgText
+              key={i}
+              x={points[i].x}
+              y={height - 8}
+              fontSize={11}
+              fill={COLORS.textSecondary}
+              textAnchor="middle"
+            >
+              {d.label}
+            </SvgText>
+          ))}
+        </Svg>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    alignItems: "center",
+    width: "100%",
     marginTop: 5,
   },
 });

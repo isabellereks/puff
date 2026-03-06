@@ -31,6 +31,9 @@ const DEFAULT_STATE = {
   // Per-perfume journal entries
   journal: [],
 
+  // Profile
+  profileImage: null,
+
   // User settings
   settings: {
     mode: USER_MODES.general,
@@ -148,6 +151,9 @@ function appReducer(state, action) {
         ],
       };
 
+    case "SET_PROFILE_IMAGE":
+      return { ...state, profileImage: action.uri };
+
     case "SET_MODE":
       return {
         ...state,
@@ -184,7 +190,7 @@ export function AppProvider({ children }) {
   useEffect(() => {
     const { liveScore, sensorConnected, sensorHistory, ...persistable } = state;
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(persistable)).catch(() => {});
-  }, [state.library, state.sprayEvents, state.journal, state.settings]);
+  }, [state.library, state.sprayEvents, state.journal, state.settings, state.profileImage]);
 
   // Derived data helpers
   const getLibraryPerfumes = () => {

@@ -3,7 +3,7 @@ import { View, Text, ScrollView, StyleSheet, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, FONTS, NUMBER_STYLE } from "../../components/theme";
+import { COLORS, FONTS, NUMBER_STYLE, SHADOWS } from "../../components/theme";
 import { useApp } from "../../context/AppContext";
 import { getPerfumeById } from "../../services/perfumeService";
 import { getPerfumeFlags, getSustainabilityScore, SPRAY_TIPS } from "../../data/ingredientFlags";
@@ -246,6 +246,7 @@ const styles = StyleSheet.create({
     borderRadius: 36,
     padding: 24,
     marginBottom: 20,
+    ...SHADOWS.neumorphicLight,
   },
   sustainTitle: {
     fontSize: 14,
@@ -311,6 +312,7 @@ const styles = StyleSheet.create({
     paddingVertical: 22,
     paddingHorizontal: 20,
     marginBottom: 16,
+    ...SHADOWS.neumorphicLight,
   },
   stat: {
     flex: 1,
@@ -337,6 +339,7 @@ const styles = StyleSheet.create({
     borderRadius: 36,
     padding: 20,
     marginBottom: 16,
+    ...SHADOWS.neumorphicLight,
   },
   exposureTitle: {
     fontSize: 12,
