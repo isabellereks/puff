@@ -2,6 +2,7 @@ import React, { createContext, useContext, useReducer, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import PERFUME_DATABASE from "../data/perfumeDatabase";
 import { getSustainabilityScore } from "../data/ingredientFlags";
+import { DEFAULT_SENSITIVITY_PROFILE } from "../data/sensitivityProfile";
 
 const AppContext = createContext();
 
@@ -40,6 +41,12 @@ const DEFAULT_STATE = {
     notifications: true,
     sensorConnected: false,
   },
+
+  // Sensitivity / life-stage profile
+  sensitivityProfile: { ...DEFAULT_SENSITIVITY_PROFILE },
+
+  // Secondary exposure events
+  secondaryExposureEvents: [],
 
   // Live sensor state
   liveScore: 25,
@@ -182,6 +189,27 @@ function appReducer(state, action) {
         settings: { ...state.settings, ...action.settings },
       };
 
+    case "UPDATE_SENSITIVITY_PROFILE":
+      return {
+        ...state,
+        sensitivityProfile: { ...state.sensitivityProfile, ...action.profile },
+      };
+
+    case "LOG_SECONDARY_EXPOSURE": {
+      const event = {
+        id: `sec_${Date.now()}`,
+        timestamp: Date.now(),
+        perfumeId: action.perfumeId || null,
+        durationMs: action.durationMs || 0,
+        peakScore: action.peakScore || 0,
+        terpenes: action.terpenes || [],
+      };
+      return {
+        ...state,
+        secondaryExposureEvents: [...state.secondaryExposureEvents, event],
+      };
+    }
+
     default:
       return state;
   }
@@ -205,8 +233,9 @@ export function AppProvider({ children }) {
   // Persist on meaningful changes
   useEffect(() => {
     const { liveScore, sensorConnected, sensorHistory, ...persistable } = state;
+    // secondaryExposureEvents and sensitivityProfile are included in persistable
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(persistable)).catch(() => {});
-  }, [state.library, state.sprayEvents, state.journal, state.settings, state.profileImage]);
+  }, [state.library, state.sprayEvents, state.journal, state.settings, state.profileImage, state.sensitivityProfile, state.secondaryExposureEvents]);
 
   // Derived data helpers
   const getLibraryPerfumes = () => {
@@ -247,6 +276,12 @@ export function AppProvider({ children }) {
     return state.sprayEvents.filter((e) => e.perfumeId === perfumeId).length;
   };
 
+  const getSecondaryExposureForMonth = () => {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    return state.secondaryExposureEvents.filter((e) => e.timestamp >= startOfMonth);
+  };
+
   const value = {
     state,
     dispatch,
@@ -257,6 +292,7 @@ export function AppProvider({ children }) {
     getAverageDailySprays,
     getOverallSustainabilityScore,
     getPerfumeSprayCount,
+    getSecondaryExposureForMonth,
     USER_MODES,
   };
 

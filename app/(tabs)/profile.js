@@ -6,6 +6,7 @@ import * as ImagePicker from "expo-image-picker";
 import { COLORS, FONTS, SHADOWS, NUMBER_STYLE } from "../../components/theme";
 import { useApp } from "../../context/AppContext";
 import { getSensorStatus } from "../../services/sensorService";
+import SensitivityProfileEditor from "../../components/SensitivityProfileEditor";
 
 const MODE_INFO = {
   enthusiast: {
@@ -71,6 +72,7 @@ function ModeSelector({ currentMode, onSelect, onClose }) {
 export default function ProfileScreen() {
   const { state, dispatch, getLibraryPerfumes, getTotalSpraysThisMonth, getAverageDailySprays } = useApp();
   const [showModeSelector, setShowModeSelector] = useState(false);
+  const [showSensitivityEditor, setShowSensitivityEditor] = useState(false);
   const libraryPerfumes = getLibraryPerfumes();
   const totalSprays = getTotalSpraysThisMonth();
   const avgDaily = getAverageDailySprays();
@@ -146,6 +148,25 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {/* Health Profile Card */}
+        <Pressable
+          style={styles.healthProfileCard}
+          onPress={() => setShowSensitivityEditor(true)}
+        >
+          <View style={styles.healthProfileRow}>
+            <Ionicons name="heart-circle-outline" size={20} color="#7A8E6A" />
+            <View style={styles.healthProfileInfo}>
+              <Text style={styles.healthProfileLabel}>Health Profile</Text>
+              <Text style={styles.healthProfileHint}>
+                {state.sensitivityProfile?.sensitivities?.length > 0
+                  ? `${state.sensitivityProfile.sensitivities.length} sensitivit${state.sensitivityProfile.sensitivities.length === 1 ? "y" : "ies"} set`
+                  : "Personalize your health alerts"}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={COLORS.tagBorder} />
+          </View>
+        </Pressable>
+
         {/* Menu */}
         <View style={styles.menuCard}>
           {[
@@ -174,6 +195,14 @@ export default function ProfileScreen() {
           currentMode={state.settings.mode}
           onSelect={(mode) => dispatch({ type: "SET_MODE", mode })}
           onClose={() => setShowModeSelector(false)}
+        />
+      )}
+
+      {showSensitivityEditor && (
+        <SensitivityProfileEditor
+          profile={state.sensitivityProfile}
+          onSave={(profile) => dispatch({ type: "UPDATE_SENSITIVITY_PROFILE", profile })}
+          onClose={() => setShowSensitivityEditor(false)}
         />
       )}
     </SafeAreaView>
@@ -280,6 +309,31 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
 
+  healthProfileCard: {
+    backgroundColor: "#E8EDE5",
+    borderRadius: 36,
+    padding: 16,
+    marginBottom: 16,
+    ...SHADOWS.neumorphicLight,
+  },
+  healthProfileRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  healthProfileInfo: {
+    flex: 1,
+  },
+  healthProfileLabel: {
+    fontSize: 14,
+    color: COLORS.text,
+    fontWeight: "500",
+  },
+  healthProfileHint: {
+    fontSize: 12,
+    color: "#5C6B52",
+    marginTop: 2,
+  },
   sensorCard: {
     backgroundColor: COLORS.card,
     borderRadius: 36,

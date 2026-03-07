@@ -12,6 +12,12 @@ import { COLORS, FONTS, SHADOWS, NUMBER_STYLE } from "../../components/theme";
 import { useApp } from "../../context/AppContext";
 import { startSensor, stopSensor, simulateSpray, setCurrentScore } from "../../services/sensorService";
 import { getPerfumeById } from "../../services/perfumeService";
+import {
+  startDetectionSession,
+  processReading,
+  hasReactiveTerpenes,
+  getReactiveTerpenesFromPerfume,
+} from "../../services/secondaryPollutantDetector";
 
 function SwipeableEventRow({ evt, perfume, onDelete }) {
   const height = useRef(new Animated.Value(1)).current;
@@ -149,6 +155,7 @@ export default function HomeScreen() {
   const [sprayMinute, setSprayMinute] = useState(() => new Date().getMinutes());
   const [sprayPerfumeId, setSprayPerfumeId] = useState(null);
   const [sprayCount, setSprayCount] = useState(2);
+  const [secondaryAlert, setSecondaryAlert] = useState(null);
   const libraryPerfumes = getLibraryPerfumes();
   const todayEvents = getSprayEventsToday();
 
@@ -158,6 +165,21 @@ export default function HomeScreen() {
       (reading) => {
         dispatch({ type: "SET_LIVE_SCORE", score: reading.score });
         dispatch({ type: "ADD_SENSOR_READING", reading });
+
+        // Feed reading to secondary pollutant detector
+        const detection = processReading(reading);
+        if (detection?.type === "secondary_exposure_alert") {
+          setSecondaryAlert(detection);
+        }
+        if (detection?.type === "secondary_exposure_complete") {
+          dispatch({
+            type: "LOG_SECONDARY_EXPOSURE",
+            perfumeId: detection.perfumeId,
+            durationMs: detection.durationMs,
+            peakScore: detection.peakScore,
+            terpenes: detection.terpenes,
+          });
+        }
       },
       (sprayEvent) => {
         // Auto-detected spray
@@ -192,6 +214,12 @@ export default function HomeScreen() {
     setLastSprayPerfume(getPerfumeById(sprayPerfumeId));
     setTimeout(() => setLastSprayPerfume(null), 3000);
     setShowSprayModal(false);
+
+    // Start secondary pollutant monitoring if perfume has reactive terpenes
+    const sprayedPerfume = getPerfumeById(sprayPerfumeId);
+    if (sprayedPerfume && hasReactiveTerpenes(sprayedPerfume)) {
+      startDetectionSession(sprayPerfumeId, Date.now(), targetScore);
+    }
 
     // Sync sensor service so its background readings don't fight the animation
     setCurrentScore(targetScore);
@@ -292,6 +320,18 @@ export default function HomeScreen() {
           </Text>
           <Text style={styles.statusScore}>{todayEvents.length} sprays today</Text>
         </View>
+
+        {/* Secondary pollutant alert */}
+        {secondaryAlert && (
+          <Pressable
+            style={styles.secondaryAlertCard}
+            onPress={() => setSecondaryAlert(null)}
+          >
+            <Ionicons name="warning-outline" size={16} color="#9E5C46" style={{ marginTop: 1 }} />
+            <Text style={styles.secondaryAlertText}>{secondaryAlert.message}</Text>
+            <Ionicons name="close" size={14} color="#B5AFA6" />
+          </Pressable>
+        )}
 
         <Text style={[styles.sectionTitle, { marginTop: 28, marginBottom: 14 }]}>Today's scent timeline</Text>
         <View style={styles.chartCard}>
@@ -612,6 +652,21 @@ const styles = StyleSheet.create({
   statusScore: {
     fontSize: 12,
     color: COLORS.tabInactive,
+  },
+  secondaryAlertCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "#F2E0D8",
+    borderRadius: 16,
+    padding: 14,
+    marginTop: 12,
+    gap: 8,
+  },
+  secondaryAlertText: {
+    flex: 1,
+    fontSize: 12,
+    color: "#9E5C46",
+    lineHeight: 17,
   },
   sectionRow: {
     flexDirection: "row",

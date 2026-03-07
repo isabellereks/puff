@@ -51,6 +51,21 @@ export const VOC_INFO = {
     description: "Synthetic ambergris alternative. Sustainable substitute for whale-derived ambergris.",
     tip: "Very well tolerated. Sustainable choice.",
   },
+  Cinnamal: {
+    risk: "moderate",
+    description: "Aldehyde responsible for cinnamon's characteristic warm, spicy scent.",
+    tip: "Known skin sensitizer. Patch test if you have reactive skin. EU-listed allergen.",
+  },
+  Hydroxycitronellal: {
+    risk: "moderate",
+    description: "Synthetic aldehyde providing lily-of-the-valley and linden blossom floral notes.",
+    tip: "Known contact allergen — must be declared on EU labels above 0.001% in leave-on products.",
+  },
+  "Benzyl Salicylate": {
+    risk: "low",
+    description: "Ester with a faint sweet, balsamic scent. Common fixative that helps other notes last.",
+    tip: "Weak allergen at typical concentrations. EU-listed allergen requiring label disclosure.",
+  },
 };
 
 export const CONCERN_LABELS = {

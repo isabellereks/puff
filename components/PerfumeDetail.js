@@ -3,9 +3,12 @@ import { View, Text, ScrollView, StyleSheet, Pressable, Modal, TextInput } from 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS, FONTS, SHADOWS, NUMBER_STYLE } from "./theme";
-import { getCleanerAlternatives } from "../services/perfumeService";
+import { getCleanerAlternatives, getTargetedAlternatives } from "../services/perfumeService";
 import { getPerfumeFlags, getSustainabilityScore, VOC_INFO } from "../data/ingredientFlags";
+import { getFlaggedChemicals } from "../data/chemicalDatabase";
 import PerfumeBottle from "./PerfumeBottle";
+import HealthRiskCard from "./HealthRiskCard";
+import { useApp } from "../context/AppContext";
 
 const SEVERITY_COLORS = {
   high: { bg: "#F2E0D8", text: "#9E5C46" },
@@ -14,9 +17,14 @@ const SEVERITY_COLORS = {
 };
 
 export default function PerfumeDetail({ perfume, onClose, onAdd, inLibrary, libraryEntry, onUpdateNotes }) {
+  const { state } = useApp();
   const flags = getPerfumeFlags(perfume);
   const score = getSustainabilityScore(perfume);
-  const alternatives = flags.length > 0 ? getCleanerAlternatives(perfume.id) : [];
+  const flaggedChemicals = getFlaggedChemicals(perfume);
+  const { alternatives: targetedAlts, reasons: altReasons } = flaggedChemicals.length > 0
+    ? getTargetedAlternatives(perfume.id)
+    : { alternatives: [], reasons: [] };
+  const alternatives = targetedAlts.length > 0 ? targetedAlts : (flags.length > 0 ? getCleanerAlternatives(perfume.id) : []);
 
   const [idealSprays, setIdealSprays] = useState(libraryEntry?.idealSprays ?? 3);
   const [userNotes, setUserNotes] = useState(libraryEntry?.userNotes ?? "");
@@ -78,6 +86,12 @@ export default function PerfumeDetail({ perfume, onClose, onAdd, inLibrary, libr
             </View>
           </View>
 
+          {/* Health Risk Card */}
+          <HealthRiskCard
+            perfume={perfume}
+            sensitivityProfile={state.sensitivityProfile}
+          />
+
           {/* Ingredient flags */}
           {flags.length > 0 && (
             <View style={styles.flagsSection}>
@@ -115,6 +129,9 @@ export default function PerfumeDetail({ perfume, onClose, onAdd, inLibrary, libr
           {alternatives.length > 0 && (
             <View style={styles.flagsSection}>
               <Text style={styles.flagsSectionTitle}>Cleaner alternatives</Text>
+              {altReasons.length > 0 && (
+                <Text style={styles.altReason}>{altReasons[0].message}</Text>
+              )}
               {alternatives.map((alt) => (
                 <View key={alt.id} style={styles.altCard}>
                   <PerfumeBottle color={alt.bottleColor || "#CCC"} />
@@ -123,6 +140,7 @@ export default function PerfumeDetail({ perfume, onClose, onAdd, inLibrary, libr
                     <Text style={styles.altName}>{alt.name}</Text>
                     <Text style={styles.altScore}>
                       {alt.ingredients.naturally_derived_percentage}% naturally derived
+                      {alt.similarity > 0 ? ` · ${Math.round(alt.similarity * 100)}% scent match` : ""}
                     </Text>
                   </View>
                 </View>
@@ -354,6 +372,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#5C6B52",
     marginTop: 3,
+  },
+  altReason: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    lineHeight: 17,
+    marginBottom: 8,
+    fontStyle: "italic",
   },
   userSection: {
     marginBottom: 16,
